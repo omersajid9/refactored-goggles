@@ -5,7 +5,8 @@ from Model import Seq2SeqModel, TrainPipeline
 
 
 if __name__ == '__main__':
-    file_path = './facebook-firstnames.txt'
+    # file_path = './facebook-firstnames.txt'
+    file_path = './paul_graham_essay.txt'
 
     train_data = TextPipeline.generate_dataset(file_path, True)
     val_data = TextPipeline.generate_dataset(file_path, False)
