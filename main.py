@@ -2,11 +2,20 @@
 # from DataProcessing import TextDataset, TextEncoder, TextExtractor, TextPipeline
 # from torch.utils.data import DataLoader
 # from Model import Seq2SeqModel, TrainPipeline, generate_text
-# import torch
+import torch
+from mos.data.loader import TextExtractor
+
 
 if __name__ == '__main__':
     # file_path = './facebook-firstnames.txt'
-    file_path = './paul_graham_essay.txt'
+    file_path = './data/raw/paul_graham_essay.txt'
+
+
+    text_extractor = TextExtractor(file_path)
+    lines = text_extractor.get_lines()
+
+    print('Number of lines ', len(lines))
+
 
     # train_data = TextPipeline.generate_dataset(file_path, True)
     # val_data = TextPipeline.generate_dataset(file_path, False)

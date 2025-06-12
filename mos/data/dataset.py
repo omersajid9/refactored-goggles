@@ -1,4 +1,9 @@
+from torch.utils.data import Dataset
+from torch.nn.utils.rnn import pad_sequence
+import torch
 
+class TextDataset(Dataset):
+    def __init__(self, encoder, seq_len=10, train=True, train_split=0.8):
 
 
 class TextDataset(Dataset):
