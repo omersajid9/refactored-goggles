@@ -17,5 +17,5 @@ def evaluate(model, dataloader, device, criterion):
 
             loss = criterion(output, batch_y)
             val_loss += loss.item()
-
+    model.train()
     return val_loss / len(dataloader)

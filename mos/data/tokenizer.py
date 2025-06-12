@@ -3,16 +3,11 @@ import tiktoken
 
 from mos.utils.args import define_data_args
 
-
 def load_tokenizer(text_data):
     args = define_data_args()
     tokenizer_type = args.tokenizer
-
     text_tokenizer = TextTokenizer(tokenizer_type, text_data).tokenizer
-
     return text_tokenizer
-
-
 
 class TextTokenizer:
     def __init__(self, tokenizer_type, text_content):
@@ -31,7 +26,7 @@ class CharacterTokenizer:
         self.tokens = self._get_tokens(content)
         self._set_token_encoding()
         self.special_tokens = self._add_special_tokens(special_tokens)
-        self.num_tokens = len(self.tokens)
+        self.num_tokens = len(self.char_to_idx)
 
     def _get_tokens(self, content):
         vocab_chars = sorted(list(set(content)))
@@ -57,7 +52,7 @@ class CharacterTokenizer:
         return [self.encode(line) for line in lines]
     
     def decode(self, tokens):
-        return "".join([self.idx_to_char[tkn.item() if isinstance(tkn, torch.tensor) else tkn] for tkn in tokens])
+        return "".join([self.idx_to_char[tkn.item() if isinstance(tkn, torch.Tensor) else tkn] for tkn in tokens])
 
     def decode_lines(self, line_tokens):
         return "\n".join([self.decode(line) for line in line_tokens])
@@ -69,13 +64,13 @@ class TiktokenTokenizer:
 
         cl100k_base = tiktoken.get_encoding("cl100k_base")
 
-        self.encoder = tiktoken.Encoding(
+        self.tokenizer = tiktoken.Encoding(
             name="cl100k_im",
             pat_str=cl100k_base._pat_str,
             mergeable_ranks=cl100k_base._mergeable_ranks,
             special_tokens=self.special_tokens
         )
-        self.num_tokens = self.encoder.n_vocab
+        self.num_tokens = self.tokenizer.n_vocab
         self.encoded_data = self.encode_lines(text_content)
 
     def _add_special_tokens(self, special_tokens):
@@ -89,7 +84,7 @@ class TiktokenTokenizer:
         return [self.encode(line) for line in lines]
     
     def encode(self, text_content):
-        return self.encoder.encode(text_content)
+        return self.tokenizer.encode(text_content)
     
     def decode(self, encoded_content):
-        return self.encoder.decode(encoded_content.tolist())
+        return self.tokenizer.decode(encoded_content.tolist())

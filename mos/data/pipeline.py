@@ -1,31 +1,21 @@
-from torch.utils.data import Dataset, DataLoader
-import torch
-from torch.nn.utils.rnn import pad_sequence
-import tiktoken
+from .loader import load_text_file
+from .tokenizer import load_tokenizer
+from .dataset import get_text_dataloader
 
-class TextPipeline:
-    @staticmethod
-    def generate_dataset(file_path: str, train: bool):
-        batch_size = 64
+def load_data_pipeline():
+    text_loader = load_text_file()
+    print(f"Number of text lines processed: {len(text_loader.lines)}")
 
-        text_extractor = TextExtractor(file_path)
-        lines = text_extractor.get_lines()
+    text_tokenizer = load_tokenizer(text_loader.lines)
+    print(f"Number of tokens: {text_tokenizer.num_tokens}")
+    print(f"Length of encoded data: {len(text_tokenizer.encoded_data)}")
 
-        print('Number of lines ', len(lines))
+    train_dl, val_dl = get_text_dataloader(text_tokenizer)
+    print(f"Train dataloader length: {len(train_dl)}")
+    print(f"Val dataloader length: {len(val_dl)}")
 
-        text_encoder = TextEncoder(lines)
-        encoded_lines = text_encoder.encode_lines(lines)
-
-        print('Vocab size ', text_encoder.vocab_size)
-
-
-        dataset = TextDataset(encoded_lines, text_encoder.pad_idx, text_encoder.eos_idx, text_encoder.start_idx, train=train)
-
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=train,
-                                collate_fn=dataset.collate_fn)
-
-        return {
-            'dataloader': dataloader,
-            'encoder': text_encoder
-        }
-
+    ret = {
+        'dataloader': {'train': train_dl, 'val': val_dl},
+        'tokenizer': text_tokenizer
+    }
+    return ret

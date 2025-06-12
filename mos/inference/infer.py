@@ -1,7 +1,9 @@
+import torch
 
-def generate_text(model, encoder, device='cuda', max_length=25, temperature=1.0):
+def generate_text(model, tokenizer, prompt = "", device='cuda', max_length=25, temperature=1.0):
     model.eval()
-    input_seq = torch.tensor([[encoder.start_idx]], device=device)
+    prompt_encoded = tokenizer.encode(prompt)
+    input_seq = torch.tensor([[tokenizer.special_tokens['<|im_start|>'] + prompt_encoded]], device=device)
     hidden = None
     generated_indices = []
 
@@ -15,12 +17,12 @@ def generate_text(model, encoder, device='cuda', max_length=25, temperature=1.0)
             probabilities = torch.softmax(output, dim=-1)
             next_token = torch.multinomial(probabilities, num_samples=1).item()
 
-            if next_token == encoder.eos_idx:
+            if next_token == tokenizer.eos_idx:
                 break
 
             generated_indices.append(next_token)
 
             input_seq = torch.tensor([[next_token]], device=device)
 
-    generated_text = encoder.decode(torch.tensor(generated_indices))
+    generated_text = tokenizer.decode(torch.tensor(generated_indices))
     return generated_text

@@ -9,7 +9,7 @@ def load_text_file():
     args = define_data_args()
 
     file_path = extract_file_path(args)
-    max_lines = args.max_lines
+    max_lines = int(args.max_lines)
 
     return TextLoader(file_path, max_lines)
 
