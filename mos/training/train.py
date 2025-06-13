@@ -4,9 +4,10 @@ import torch.nn as nn
 import torch.optim as optim
 
 from mos.evaluation.evaluate import evaluate
+from mos.inference.infer import generate_text
 from mos.utils.metrics import detect_gradient_anomalies, monitor_gradients
 
-def train_loop(model, data, epochs = 10, device = 'cuda'):
+def train_loop(model, data, epochs = 5, device = 'cuda'):
     torch.cuda.empty_cache()
 
     model.to(device)
@@ -16,8 +17,11 @@ def train_loop(model, data, epochs = 10, device = 'cuda'):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10)
 
+    generated_text = generate_text(model, data['tokenizer'])
+    print(f"Generated text: \"{generated_text}\"")
+
     max_grad_norm = 1.0
-    noticable = 100000
+    noticable = 1000000
 
     model.train()
 
@@ -25,20 +29,20 @@ def train_loop(model, data, epochs = 10, device = 'cuda'):
     for epoch in range(epochs):
         epoch_loss = 0.0
 
-        for batch_idx, (batch_x, batch_y, batch_length) in enumerate(data['dataloader']['train']):
+        for batch_idx, (batch_x, batch_y, attention_mask) in enumerate(data['dataloader']['train']):
 
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+            batch_x, batch_y, attention_mask = batch_x.to(device), batch_y.to(device), attention_mask.to(device)
 
             if batch_x.numel() == 0:
                 continue
 
             optimizer.zero_grad()
-            output, _ = model(batch_x, None)
+            output, _ = model(batch_x, attention_mask)
 
-            batch, seq_len, vocab = output.size()
+            batch, vocab = output.size()
 
-            output_flat = output.reshape(batch * seq_len, vocab)
-            batch_y_flat = batch_y.reshape(batch * seq_len)
+            output_flat = output.reshape(batch, vocab)
+            batch_y_flat = batch_y.reshape(batch)
 
             loss = criterion(output_flat, batch_y_flat)
             loss.backward()
@@ -73,10 +77,10 @@ def train_loop(model, data, epochs = 10, device = 'cuda'):
 
                 scheduler.step(val_loss)
 
+            if global_step % 1000 == 0:
+                generated_text = generate_text(model, data['tokenizer'])
+                print(f"Generated text: \"{generated_text}\"")
+                generated_text = generate_text(model, data['tokenizer'])
+                print(f"Generated text: \"{generated_text}\"")
         if int(optimizer.param_groups[0]["lr"] * noticable) == 0:
             break
-#             if global_step % 1000 == 0:
-#                 generated_text = generate_text(model, encoder)
-#                 print(f"Generated text: \"{generated_text}\"")
-#                 generated_text = generate_text(model, encoder)
-#                 print(f"Generated text: \"{generated_text}\"")

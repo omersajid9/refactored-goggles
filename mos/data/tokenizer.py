@@ -1,5 +1,6 @@
 import torch
 import tiktoken
+import string
 
 from mos.utils.args import define_data_args
 
@@ -23,18 +24,25 @@ class CharacterTokenizer:
     def _set_vocab_data(self, content):
         special_tokens = ['<|pad|>', '<|im_end|>', '<|im_start|>']
 
-        self.tokens = self._get_tokens(content)
-        self._set_token_encoding()
+        tokens = self._get_tokens(content)
+        self._set_token_encoding(tokens)
         self.special_tokens = self._add_special_tokens(special_tokens)
         self.num_tokens = len(self.char_to_idx)
 
-    def _get_tokens(self, content):
-        vocab_chars = sorted(list(set(content)))
+    def _get_latin_characters(self):
+        """
+        Return all ASCII Latin alphabet characters for tokenization purposes.
+        Includes uppercase A–Z and lowercase a–z.
+        """
+        return string.ascii_letters
+    
+    def _get_tokens(self, chars):
+        vocab_chars = sorted(list(set(chars + self._get_latin_characters())))
         return vocab_chars
     
-    def _set_token_encoding(self):
-        self.char_to_idx = {c: i for i, c in enumerate(self.tokens)}
-        self.idx_to_char = {i: c for i, c in enumerate(self.tokens)}
+    def _set_token_encoding(self, tokens):
+        self.char_to_idx = {c: i for i, c in enumerate(tokens)}
+        self.idx_to_char = {i: c for i, c in enumerate(tokens)}
 
     def _add_special_tokens(self, special_tokens):
         special_token_info = {}

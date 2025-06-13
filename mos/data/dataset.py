@@ -4,7 +4,7 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import random_split
 
 
-def get_text_dataloader(text_tokenizer, batch_size=16):
+def get_text_dataloader(text_tokenizer, batch_size=64):
     dataset = TextDataset(text_tokenizer)
     
     train_size = int(0.8 * len(dataset))
@@ -19,38 +19,36 @@ def get_text_dataloader(text_tokenizer, batch_size=16):
 
 
 class TextDataset(Dataset):
-    def __init__(self, tokenizer, seq_len=4):
+    def __init__(self, tokenizer, seq_len=10):
         super().__init__()
 
         self.seq_len = seq_len + 1
         self.special_tokens = tokenizer.special_tokens
         self.data = tokenizer.encoded_data
-        self.pairs = self._get_sequential_pairs()
+        self.samples = self._build_samples()
 
-    def _get_sequential_pairs(self):
-        pairs = []
+    def _build_samples(self):
+        samples = []
         for line in self.data:
-            line_with_eos = [self.special_tokens['<|im_start|>']] + line.tolist() + [self.special_tokens['<|im_end|>']]
-            for i in range(1, len(line_with_eos)):
-                start_idx = max(0, i - self.seq_len + 1)
-                X = line_with_eos[start_idx:i]
-                y = line_with_eos[i]
-                y = line_with_eos[start_idx + 1:i + 1]
-                pairs.append((X, y))
-        return pairs
+            line = [self.special_tokens['<|im_start|>']] + line.tolist() + [self.special_tokens['<|im_end|>']]
+            for i in range(1, len(line) + self.seq_len - 1):
+                start = max(0, i - self.seq_len)
+                end = min(i, len(line)-1)
+                seq = line[start:end]
+                target = line[end]
+                samples.append((seq, target))
+        return samples
 
     def __getitem__(self, idx):
-        pair = self.pairs[idx]
-        X = torch.tensor(pair[0], dtype=torch.long)
-        y = torch.tensor(pair[1], dtype=torch.long)
-        return X, y
+        x, y = self.samples[idx]
+        return torch.tensor(x, dtype=torch.long), torch.tensor(y, dtype=torch.long)
 
     def __len__(self):
-        return len(self.pairs)
+        return len(self.samples)
 
     def collate_fn(self, batch):
-        Xs, ys = zip(*batch)
-        Xs_padded = pad_sequence(Xs, batch_first=True, padding_value=self.special_tokens['<|pad|>'])
-        ys_padded = pad_sequence(ys, batch_first=True, padding_value=self.special_tokens['<|pad|>'])
-        lengths = torch.tensor([len(x) for x in Xs])
-        return Xs_padded, ys_padded, lengths
+        x_batch, y_batch = zip(*batch)
+        x_padded = pad_sequence(x_batch, batch_first=True, padding_value=self.special_tokens['<|pad|>'], padding_side="left")
+        y_tensor = torch.tensor(y_batch, dtype=torch.long)
+        attention_mask = (x_padded != self.special_tokens['<|pad|>']).long()
+        return x_padded, y_tensor, attention_mask
